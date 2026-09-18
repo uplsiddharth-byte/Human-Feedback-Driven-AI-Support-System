@@ -10,9 +10,13 @@ B.Tech final year project, Mahindra University. Supervised by **Dr. Divija Gadir
 ## What this is, and what it is not
 
 The chatbot is the deliverable. The research contribution is the **feedback half**: a controlled
-comparison of supervised fine-tuning against preference-based training (DPO, optionally RLHF) on
-real feedback collected from a deployed system, measured on correctness, helpfulness, hallucination
-rate and user preference.
+comparison of supervised fine-tuning against preference-based training (DPO) on real feedback
+collected from a deployed system, measured on correctness, helpfulness, hallucination rate and user
+preference.
+
+The system is **closed-book** — it answers from its weights, with no retrieval step, and that is what
+keeps the comparison clean. The model's knowledge is held constant, so the only variable between the
+two checkpoints is **how human feedback was used**. SFT is the control, DPO is the treatment.
 
 Anyone can wire an LLM to a pile of documents. The measured comparison is what makes this a
 project rather than a weekend build — so every piece of work here either makes the assistant work
@@ -22,14 +26,18 @@ or makes the comparison measurable.
 
 ## The core design decisions
 
-### V1 is closed-book — no retrieval in semester 7
+### The system is closed-book — no retrieval, ever
 
-The model answers from what it learned during fine-tuning. There is no retrieval step.
+The model answers from what it learned during fine-tuning. There is no retrieval step, and there is
+no phase of this project that adds one.
 
-This is method, not a shortcut. A closed-book fine-tune is the **control condition**: build
-retrieval first and you can never separate what fine-tuning contributed from what retrieval
-contributed. The expected V1 failure — strong on stable facts, weak on time-sensitive ones — is the
-*measured* motivation for adding RAG in semester 8.
+This is method, not a shortcut. The project measures how human feedback changes an assistant; hold
+the knowledge source constant and the feedback method is the only thing varying, so any difference
+between the SFT and DPO checkpoints is attributable. Add retrieval and there are two moving parts
+and no clean claim.
+
+The known cost is that time-sensitive facts go stale. That is measured rather than ignored, and
+answered on closed-book terms — see the refresh-cadence decision below.
 
 ### Every training pair carries a volatility tier
 
@@ -39,55 +47,98 @@ actual finding.
 | Tier | Contains | Expected V1 behaviour |
 |---|---|---|
 | `STATIC` | Degree structure, department and faculty names, campus geography, library and lab rules, long-standing academic policy | Should work well. Source of the headline accuracy number. |
-| `TERMLY` | Fee deadlines, exam and add/drop dates, elective lists, event calendar, current timetable structure | Should degrade — and we intend to prove it. The staleness error rate here is the argument for retrieval. |
+| `TERMLY` | Fee deadlines, exam and add/drop dates, elective lists, event calendar, current timetable structure | Should degrade — and we intend to prove it. The staleness error rate here motivates the adapter-refresh experiment. |
 | `PRIVATE` | Attendance, marks, fee status, personal timetable — anything behind a student login | **Out of scope entirely.** Never collected, never stored, never trained on. |
 
-### Feedback capture ships in V1
+### A/B comparison ships early, and preference collection runs in two rounds
 
-Including A/B comparison, even though DPO is a semester-8 problem. The system sometimes shows two
-candidate answers (two checkpoints, or two sampling temperatures) and asks which is better. That
-interaction is the **only** thing that produces preference pairs — ship ratings alone and semester 8
-begins with an empty dataset.
+The system sometimes shows two candidate answers (two checkpoints, or two sampling temperatures) and
+asks which is better. That interaction is the **only** thing that produces preference pairs, and
+since DPO trains this semester it is on the critical path — the A/B view ships with the first working
+model, not with the pilot.
+
+DPO cannot wait for the pilot, so preference collection runs in two rounds that are **reported
+separately**:
+
+| Round | Source | Weeks | Used for |
+|---|---|---|---|
+| R1 | The four of us, in the weekly annotation slot | 9–10 | DPO run 1 — unblocks training |
+| R2 | ~30 pilot students | 11–13 | DPO run 2, and validation that R1 matches real users |
+
+R1 pairs are annotator-sourced, not user-sourced, and are never reported as user feedback. Whether
+the two rounds agree is itself a result: if our preferences diverge from students', that is a finding
+about who gets to define "better".
+
+### Staleness is answered by scheduled re-fine-tuning
+
+`TERMLY` facts rot. The closed-book answer is to measure the decay and then show that refreshing the
+data and re-running QLoRA restores accuracy — and to report what that refresh costs.
+
+A `TERMLY` snapshot is frozen at week 5 alongside the test split. Ground truth is re-verified in
+weeks 13–14 — facts genuinely expire inside one semester, as add/drop closes and deadlines pass — and
+the decay against the snapshot is the staleness curve. The adapter is then retrained on refreshed
+data and recovery is measured, along with the cost in GPU-hours, annotation hours and turnaround.
+
+The deliverable is a **refresh-cadence recommendation**: how often a system like this has to be
+retrained to stay correct, and what that costs. Staleness stops being a limitation with no answer.
 
 ### No private student data, at any stage
 
 Not a rule about model weights only: no per-student data enters the project at all. It is an
-irreversible privacy risk, and it forecloses the semester-8 contribution — permissioned retrieval at
-query time with authentication. A workflow question ("how do I check my attendance") is answered
-from public policy documents, never from a student record.
+irreversible privacy risk, and no version of this project needs it. A workflow question ("how do I
+check my attendance") is answered from public policy documents, never from a student record.
 
 ---
 
-## Architecture (V1)
+## Architecture
+
+Closed-book throughout. Two loops close inside semester 7: the **feedback loop**, which produces the
+DPO checkpoint and the project's main result, and the **refresh loop**, which produces the staleness
+answer.
 
 ```
 SOURCES
   MU website | events & notices | updated campus map | open-source course platform contents
+      |                                                              ^
+      v                                                              |
+COLLECTION + PROVENANCE  (source URL, capture date, tier)            |
+      |                                                              |
+      v                                                      REFRESH LOOP
+CURATION -> verified instruction pairs                               | re-verify TERMLY
+      |                    \                                         | at wk 13-14,
+      |                     \--> HELD-OUT TEST SET (~300 pairs)      | retrain, measure
+      |                     |    frozen wk 5, never trained on       | recovery + cost
+      |                     \--> TERMLY SNAPSHOT v0 -----------------'
+      v                          frozen wk 5, staleness baseline
+QLoRA FINE-TUNE (SFT)
       |
       v
-COLLECTION + PROVENANCE  (source URL, capture date, tier)
+SFT CHECKPOINT ------------------------------> EVAL HARNESS
+      |                                        accuracy / hallucination / refusal,
+      |                                        broken down per tier
+      v                                              ^         ^
+FASTAPI + INFERENCE SERVER                           |         |
+      |   serves both checkpoints, model_version stamped       |
+      v                                                        |
+CHAT UI  (answer, rating, A/B compare)                         |
+      |                                                        |
+      v                                                        |
+FEEDBACK STORE  (ratings + preference pairs,                   |
+      |   R1 team / R2 pilot kept separate)                    |
+      v                                                        |
+DPO TRAINING  (R1 wk 10-11, R2 wk 12-13)                       |
+      |                                                        |
+      v                                                        |
+DPO CHECKPOINT --------------------------------------------'
       |
       v
-CURATION -> verified instruction pairs
-      |                          \
-      |                           \--> HELD-OUT TEST SET (~300 pairs, never trained on)
-      v                                          |
-QLoRA FINE-TUNE (SFT)                            |
-      |                                          |
-      v                                          v
-MODEL vN (versioned checkpoint) ---------> EVAL HARNESS
-      |                                    accuracy / hallucination, per tier
-      v
-FASTAPI + INFERENCE SERVER
+SFT vs DPO COMPARISON  ->  the result
       |
-      v
-CHAT UI  (answer, rating, A/B compare)
-      |
-      v
-FEEDBACK STORE (ratings + preference pairs)
-      |
-      '--> [SEMESTER 8] preference pairs -> DPO -> new checkpoint
+      '--> [SEMESTER 8] research paper
 ```
+
+Both checkpoints are served side by side from week 11, which is what makes the pilot's blind A/B a
+comparison rather than only data collection.
 
 ---
 
@@ -140,8 +191,13 @@ Metrics are defined precisely so they mean the same thing on every checkpoint:
 - **Hallucination rate** — answers asserting something no source supports.
 - **Refusal rate** — how often the model correctly says "I don't know". A model that never refuses
   is not safe; one that always refuses is not useful. Both directions are reported.
-- **Staleness error rate** — `TERMLY` answers that were correct at training time and are wrong now.
-  This is the headline result that justifies semester 8.
+- **Staleness error rate** — `TERMLY` answers that were correct at training time and are wrong now,
+  measured against the week-5 snapshot. Always reported with its companion numbers: recovery after
+  adapter refresh, and what the refresh cost. Decay alone is a complaint; decay plus recovery plus
+  cost is a cadence recommendation.
+- **SFT vs DPO** — the project's main result. Both checkpoints are reported on accuracy,
+  hallucination and refusal per tier, plus win rate on held-out preference pairs. R1 and R2
+  preferences are reported separately, and their agreement is reported too.
 - **Inter-annotator agreement** — on a double-annotated sample, as evidence the dataset can be
   trusted.
 
@@ -153,8 +209,9 @@ someone else's model.
 ### Preference elicitation
 
 Left/right placement randomised, checkpoint identity hidden from the user, order effects controlled,
-and the collected data checked for position bias afterwards. Get this wrong and semester 8 trains on
-an artefact of the interface rather than on real preferences.
+and the collected data checked for position bias. Get this wrong and DPO trains on an artefact of the
+interface rather than on real preferences — so the bias check runs on R1 in week 10, before DPO run
+1, not afterwards.
 
 ---
 
@@ -182,12 +239,13 @@ describes it.
 
 | Person | Owns |
 |---|---|
-| **Siddharth** | Model, training, serving, integration — fine-tuning pipeline and QLoRA configs, ablations, FastAPI inference server, experiment tracking, repository and inter-component contracts, decision log, pilot rollout and checkpoint management, DPO in semester 8. |
-| **Sumana** | Data pipeline and campus map — AI-assisted map update verified on foot, collectors with provenance, instruction-pair generation, dataset schema and versioning, splits, dedup and leakage checks, inter-annotator agreement. |
-| **Kavya** | Evaluation and feedback backend — eval harness, LLM-as-judge rubric and its human-agreement validation, feedback service and preference-pair export, preference-elicitation protocol, results tables and plots. |
-| **Monisha** | Front end, annotation, documentation — chat UI including A/B compare, curation of instruction pairs, error-tag taxonomy, annotation guidelines, README, logs, report sections, demo video. |
+| **Siddharth** | Model, training, serving, integration — fine-tuning pipeline and QLoRA configs, SFT ablations, DPO training runs and the SFT-vs-DPO comparison, the adapter-refresh retrain, FastAPI inference server serving both checkpoints, experiment tracking, repository and inter-component contracts, decision log, pilot rollout and checkpoint management. |
+| **Sumana** | Data pipeline and campus map — AI-assisted map update verified on foot, collectors with provenance, instruction-pair generation, dataset schema and versioning, splits, dedup and leakage checks, the `TERMLY` snapshot freeze and its week 13–14 re-verification, inter-annotator agreement. |
+| **Kavya** | Evaluation and feedback backend — eval harness, LLM-as-judge rubric and its human-agreement validation, feedback service and preference-pair export with R1/R2 provenance kept distinct, preference-elicitation protocol, staleness and refresh-cost measurement, results tables and plots. |
+| **Monisha** | Front end, annotation, documentation — chat UI including A/B compare, shipped in weeks 6–7 rather than with the pilot, curation of instruction pairs, error-tag taxonomy, annotation guidelines, README, logs, report sections, demo video. |
 
-Shared across all four: weekly annotation, and pilot recruitment and sessions.
+Shared across all four: weekly annotation, the R1 preference round in weeks 9–10, and pilot
+recruitment and sessions.
 
 ---
 
@@ -209,20 +267,28 @@ Shared across all four: weekly annotation, and pilot recruitment and sessions.
 
 ## Roadmap
 
-**Semester 7** — working closed-book assistant, evaluation by fact tier, the staleness curve,
-collected preference pairs, report.
+**Semester 7 carries all of the technical work** — the closed-book assistant, evaluation by fact tier,
+the staleness curve and its refresh answer, preference collection, the DPO checkpoint, and the
+SFT-vs-DPO comparison.
 
 | Weeks | Milestone |
 |---|---|
 | 1–2 | Scope frozen, source list agreed, dataset schema written, base model chosen, repository created, campus map update begun. |
-| 3–5 | Collection running end to end; first 1,000 pairs verified; test split frozen. |
-| 6–7 | First model end to end, however bad — data to fine-tune to served answer to logged rating. |
-| 8–10 | Full dataset; ablation sweep; eval harness reporting per tier on every checkpoint. |
-| 11–13 | Internal pilot with ~30 students, A/B compare live, preference pairs accumulating. |
-| 14–15 | Error analysis by tier; staleness curve; semester 7 report; retrieval proposal backed by our own numbers. |
+| 3–5 | Collection running end to end; first 1,000 pairs verified; test split frozen; `TERMLY` snapshot frozen. |
+| 6–7 | First model end to end, however bad — data to fine-tune to served answer to logged rating. A/B compare view ships here. |
+| 8–9 | Full dataset; SFT ablation sweep; eval harness reporting per tier on every checkpoint. |
+| 9–10 | R1 team preference annotation round; position-bias check on the collected pairs. |
+| 10–11 | DPO run 1 on R1 pairs; first SFT vs DPO numbers on the held-out set. |
+| 11–13 | Internal pilot with ~30 students, both checkpoints served, blind A/B live; R2 pairs accumulate; DPO run 2 on the combined set. |
+| 13–14 | Refresh experiment — re-verify `TERMLY` ground truth, measure decay, retrain the adapter, measure recovery and cost. |
+| 14–15 | Error analysis by tier; staleness and refresh-cost curves; final SFT vs DPO results; semester 7 report; paper outline. |
 
-**Semester 8** — retrieval (RAG) on top of the fine-tuned model, and DPO on the preferences
-collected during the pilot, compared against the semester 7 baselines.
+The load-bearing dependency: the R1 round needs two comparable checkpoints from the weeks 8–9 sweep,
+which needs the full dataset, which needs collection running by week 5. Slip week 5 and DPO run 1
+slides into the pilot window, collapsing the two preference rounds into one.
+
+**Semester 8 is the research paper** — writing up the semester 7 results and submitting for
+publication if they support it. No new build work is planned.
 
 ---
 
@@ -235,9 +301,13 @@ code is next. Nothing is claimed here as working until it is measured and report
 
 - **SFT** — supervised fine-tuning: continued training on our own question–answer examples.
 - **LoRA / QLoRA** — freeze the base model, train a small adapter alongside it. Fits one GPU.
-- **RAG** — retrieve relevant documents first and answer from them, rather than from memory.
+- **RAG** — retrieve relevant documents first and answer from them, rather than from memory. Out of
+  scope for this project; defined here because the write-up has to explain what it deliberately does
+  not do.
 - **DPO / RLHF** — training on human preference comparisons rather than gold answers. DPO is simpler
-  and is what we use.
-- **Closed-book** — answering from weights alone, with no retrieval. What V1 is.
+  and is what we use; RLHF is not planned.
+- **Closed-book** — answering from weights alone, with no retrieval. What this system is, throughout.
 - **Ablation** — change exactly one thing, re-measure, report what it was worth.
 - **Staleness** — a fact that was correct when trained and is wrong now.
+- **Refresh cadence** — how often the adapter has to be retrained on updated data to keep `TERMLY`
+  facts correct, and what that costs. Our closed-book answer to staleness.
