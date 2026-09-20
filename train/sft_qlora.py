@@ -1,6 +1,8 @@
 """QLoRA supervised fine-tuning for the MU assistant.
 
-Smoke test:
+Defaults to the project's base model, Llama-3.1-8B-Instruct (gated; needs Meta approval).
+
+Smoke test on the small ungated mirror, to prove the pipeline before access lands:
     python train/sft_qlora.py --model unsloth/Llama-3.2-1B-Instruct \
         --data data/v0.0-demo/pairs.jsonl --out out/smoketest --allow-unverified
 """
@@ -57,7 +59,7 @@ def answer(model, tokenizer, question):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--model", default="unsloth/Llama-3.2-1B-Instruct")
+    p.add_argument("--model", default="meta-llama/Meta-Llama-3.1-8B-Instruct")
     p.add_argument("--data", default="data/v0.0-demo/pairs.jsonl")
     p.add_argument("--out", default="out/smoketest")
     p.add_argument("--epochs", type=float, default=5)
