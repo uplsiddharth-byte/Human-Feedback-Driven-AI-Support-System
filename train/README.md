@@ -20,6 +20,11 @@ Runtime → Change runtime type → **T4 GPU**. Then three cells:
                    bitsandbytes accelerate wandb
 ```
 
+Verified working on **trl 1.13.0, transformers 5.17.0, peft 0.21.0** (2026-09-21). If a future
+run dies with `unexpected keyword argument`, a library has renamed a setting — print
+`set(SFTConfig.__dataclass_fields__)` and compare, rather than guessing. transformers 5 already
+removed `warmup_ratio` and `max_seq_length` this way.
+
 **2. Clone and authenticate**
 
 Add `HF_TOKEN` and `WANDB_API_KEY` in the Colab key icon (left sidebar) first, with notebook
