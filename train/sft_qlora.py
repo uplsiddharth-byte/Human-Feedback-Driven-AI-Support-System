@@ -1,7 +1,7 @@
 """QLoRA supervised fine-tuning for the MU assistant.
 
 Smoke test:
-    python train/sft_qlora.py --model Qwen/Qwen2.5-1.5B-Instruct \
+    python train/sft_qlora.py --model unsloth/Llama-3.2-1B-Instruct \
         --data data/v0.0-demo/pairs.jsonl --out out/smoketest --allow-unverified
 """
 
@@ -57,7 +57,7 @@ def answer(model, tokenizer, question):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct")
+    p.add_argument("--model", default="unsloth/Llama-3.2-1B-Instruct")
     p.add_argument("--data", default="data/v0.0-demo/pairs.jsonl")
     p.add_argument("--out", default="out/smoketest")
     p.add_argument("--epochs", type=float, default=5)
