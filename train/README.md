@@ -1,6 +1,6 @@
 # train/ — QLoRA fine-tuning
 
-`sft_qlora.py` is the whole supervised fine-tuning path: load a base checkpoint in 4-bit,
+`sft_qlora.py` is the whole supervised fine-tuning path: load a Llama 3 checkpoint in 4-bit,
 attach a LoRA adapter, train on a JSONL of instruction pairs, save the adapter, then prove it
 learned something by answering one question with the adapter off and on.
 
@@ -22,12 +22,13 @@ Runtime → Change runtime type → **T4 GPU**. Then three cells:
 
 **2. Clone and authenticate**
 
-Add `WANDB_API_KEY` in the Colab key icon (left sidebar) first, with notebook access enabled.
-No Hugging Face token is needed — Qwen2.5 is ungated.
+Add `HF_TOKEN` and `WANDB_API_KEY` in the Colab key icon (left sidebar) first, with notebook
+access enabled for both.
 
 ```python
 import os
 from google.colab import userdata
+os.environ["HF_TOKEN"] = userdata.get("HF_TOKEN")
 os.environ["WANDB_API_KEY"] = userdata.get("WANDB_API_KEY")
 
 !git clone https://github.com/uplsiddharth-byte/Human-Feedback-Driven-AI-Support-System.git
@@ -39,15 +40,16 @@ os.environ["WANDB_API_KEY"] = userdata.get("WANDB_API_KEY")
 
 ```python
 !python train/sft_qlora.py \
-    --model Qwen/Qwen2.5-1.5B-Instruct \
+    --model unsloth/Llama-3.2-1B-Instruct \
     --data data/v0.0-demo/pairs.jsonl \
     --out /content/out/smoketest \
     --allow-unverified
 ```
 
-`Qwen2.5-1.5B-Instruct` is the small sibling of the real base model — same family, same chat
-template, same LoRA target modules — so it runs in a few minutes and the only thing that
-changes when you scale up is the model name.
+`unsloth/Llama-3.2-1B-Instruct` is an ungated Llama 3 mirror — it runs in a few minutes and
+needs no Meta approval, so the pipeline can be proven while the gated access request for the
+8B checkpoint is still pending. Same architecture, same chat template, same LoRA target
+modules; the only thing that changes when you scale up is the model name.
 
 Expect the loss to drop fast and the model to overfit hard. On twenty pairs that is the
 correct outcome: the test asks whether the training signal flows, not whether the model is any
@@ -59,20 +61,20 @@ one, the final `assert` passes, and a run with a falling loss curve shows up in 
 
 ## Moving to the real base model
 
-Rerun the identical command with `--model Qwen/Qwen2.5-7B-Instruct`. Nothing else changes.
-If it runs out of memory on the free T4, lower `--max-seq-length` and `--batch-size` and raise
+Once Meta approves the licence on `meta-llama/Meta-Llama-3.1-8B-Instruct`, rerun the identical
+command with `--model meta-llama/Meta-Llama-3.1-8B-Instruct`. Nothing else changes. If it runs
+out of memory on the free T4, lower `--max-seq-length` and `--batch-size` and raise
 `--grad-accum` — then record what fit. That config becomes the baseline for the first real
 model in weeks 6–7.
 
-**Base model: Qwen2.5-7B-Instruct, chosen 2026-09-21** over Llama-3.1-8B. It is ungated (no
-Meta approval queue on the week-5 critical path), Apache 2.0 rather than Meta's community
-licence, and ~5–6GB at 4-bit against ~9–10GB, which is real headroom on a 16GB T4. The base
-model is held constant across the SFT and DPO arms, so this choice cannot affect the reported
-delta — it is picked purely for the fewest blockers.
+**Base model: Llama 3, as decided at the 1 September 2026 supervisor review.** Qwen2.5-7B was
+evaluated as an alternative on 2026-09-21 and rejected: it is ungated and lighter, but the base
+model is held constant across the SFT and DPO arms, so it cannot affect the reported delta, and
+switching buys nothing the project needs. Llama has the larger fine-tuning ecosystem and needs
+no justification to a reviewer.
 
-Known quirk: Qwen sometimes emits a stray Chinese token when fine-tuned on a small
-English-only set. More data suppresses it and the eval harness will catch it. Stay on
-Qwen**2.5** rather than 3.x — far more battle-tested QLoRA tooling behind it.
+Request access early — Meta approval is the one dependency here that can take an unknown
+number of hours, and CLAUDE.md §10 says guard week 5.
 
 Save adapters to mounted Drive rather than `/content` for any run you care about; Colab
 sessions are killed without warning.
