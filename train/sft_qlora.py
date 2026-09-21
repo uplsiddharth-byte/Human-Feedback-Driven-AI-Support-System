@@ -9,6 +9,7 @@ Smoke test on the small ungated mirror, to prove the pipeline before access land
 
 import argparse
 import json
+import math
 import os
 
 import torch
@@ -111,6 +112,10 @@ def main():
     if not args.no_wandb:
         os.environ.setdefault("WANDB_PROJECT", "mu-assistant")
 
+    # transformers 5 dropped warmup_ratio; only absolute warmup_steps survives.
+    steps_per_epoch = math.ceil(len(dataset) / (args.batch_size * args.grad_accum))
+    warmup_steps = max(1, int(steps_per_epoch * args.epochs) // 10)
+
     trainer = SFTTrainer(
         model=model,
         train_dataset=dataset,
@@ -124,7 +129,7 @@ def main():
             gradient_accumulation_steps=args.grad_accum,
             gradient_checkpointing=True,
             learning_rate=args.lr,
-            warmup_ratio=0.1,
+            warmup_steps=warmup_steps,
             logging_steps=1,
             save_strategy="epoch",
             optim="paged_adamw_8bit",
