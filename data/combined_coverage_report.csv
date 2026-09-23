@@ -1,0 +1,21 @@
+﻿coverage_category,website_record_count,campus_map_record_count,coverage,website_record_ids,campus_map_record_ids,notes
+University information,9,0,website,MU-001 to MU-008; MU-010,,"About page overview, leadership and partnerships."
+Schools/departments,17,3,both,MU-011 to MU-027,MAP-001; MAP-013; MAP-018,Website: seven schools and centres. Map: École Centrale School label/sign and generic Schools sign.
+Programs,52,0,website,MU-028 to MU-079,,"B.Tech, UG, PG, doctoral and executive programmes."
+Admissions,19,0,website,MU-080 to MU-091; MU-182 to MU-188,,"Includes B.Tech eligibility, fees, scholarships and admissions contacts."
+Research,3,0,website,MU-163 to MU-165,,Website: 3 records. Research centres are counted under Schools/departments.
+Faculty,1,0,website,MU-009,,Website: faculty count and directory pointer only; individual faculty records not extracted (per MU-009).
+Library,6,0,website,MU-093 to MU-098,,VNLRC records. See conflicts file for the possible link between VNLRC and the map's Vineet Nayyar Academic Block.
+Residences/hostels,4,5,both,MU-099 to MU-102,MAP-004 to MAP-005; MAP-012; MAP-014; MAP-019,"Map includes Hostels, Hostel 5, Hostel 1-4 and Guest House (map category: residential)."
+Dining,3,0,website,MU-103 to MU-105,,"Website only. MU-105 mentions the guesthouse, linked to map Guest House in the overlap file; the map has no dining record."
+Sports,7,1,both,MU-106 to MU-112,MAP-006,Map: Soccer Field (partial link to website football grounds).
+Health,0,1,campus_map,,MAP-011,"Website has no dedicated health record; it mentions health services only in passing (MU-101, MU-111), so these are not counted. Map: Health Care Centre sign."
+Safety,1,0,website,MU-101,,Website: residence safety and wellbeing (MU-101). A Campus Safety page is referenced but not extracted.
+Student facilities,1,0,website,MU-113,,"Website: classrooms record only. Dining, sports and residences are counted in their own rows."
+Campus buildings,0,6,campus_map,,MAP-001 to MAP-003; MAP-015; MAP-017 to MAP-018,Website has no named campus buildings (MU-092 notes no map with building names was found). VNLRC is counted under Library.
+Campus locations,1,10,both,MU-092,MAP-010 to MAP-019,Website: campus address and virtual tour. Map: wayfinding signs (direction and walking time from sign).
+Other facilities,0,4,campus_map,,MAP-007 to MAP-009; MAP-016,"Map: Convention Centre/Center, NCC Office, Infra Office."
+Student clubs and activities,49,0,website,MU-114 to MU-162,,Extra row: not in your list but present in the website data.
+Events and news,13,0,website,MU-168 to MU-180,,Extra row.
+Placements and careers,2,0,website,MU-166 to MU-167,,Extra row.
+Contact information,3,0,website,MU-181; MU-189 to MU-190,,Extra row: general and other contacts. Admissions contacts are under Admissions.

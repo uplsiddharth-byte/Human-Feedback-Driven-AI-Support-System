@@ -181,6 +181,9 @@ manual nor fully automatic, and is reported as such.
 **Targets:** 3,000–6,000 verified pairs for V1; a ~300-pair held-out test set stratified across
 tiers, frozen by week 5.
 
+The working dataset is `data/raw/pairs.csv` with its source register `data/raw/sources.csv`;
+`scripts/pipeline.py` validates, splits and snapshots it. See [`docs/data_pipeline.md`](docs/data_pipeline.md).
+
 ---
 
 ## Evaluation

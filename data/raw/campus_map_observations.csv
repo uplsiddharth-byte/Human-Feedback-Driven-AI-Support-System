@@ -1,0 +1,20 @@
+observation_id,label_as_read,category,image_reference,observation,verification_status
+MAP-001,École Centrale School of Engineering,academic,closeup,Label visible; spelling verify,pending_university_confirmation
+MAP-002,Academic Block,academic,closeup,Label visible,pending_university_confirmation
+MAP-003,Vineet Nayyar Academic Block,academic,closeup,Label visible,pending_university_confirmation
+MAP-004,Hostels,residential,closeup,Multiple hostel areas visible; numbering verify,pending_university_confirmation
+MAP-005,Guest House,residential,closeup,Label visible,pending_university_confirmation
+MAP-006,Soccer Field,sports,closeup,Label visible,pending_university_confirmation
+MAP-007,Convention Centre,utility,closeup,Label visible,pending_university_confirmation
+MAP-008,NCC Office,utility,closeup,Label visible,pending_university_confirmation
+MAP-009,Infra Office,utility,closeup,Label visible,pending_university_confirmation
+MAP-010,Main Gate,wayfinding,full_sign,"Sign says left arrow, 7 min from sign",pending_university_confirmation
+MAP-011,Health Care Centre,wayfinding,full_sign,"Sign says straight, 1 min from sign",pending_university_confirmation
+MAP-012,Hostel 5,wayfinding,full_sign,"Sign says straight, 1 min from sign",pending_university_confirmation
+MAP-013,Schools,wayfinding,full_sign,"Sign says down arrow, 2 min from sign",pending_university_confirmation
+MAP-014,Guest House,wayfinding,full_sign,"Sign says left arrow, 5 min from sign",pending_university_confirmation
+MAP-015,Academic Block,wayfinding,full_sign,"Sign says left arrow, 6 min from sign",pending_university_confirmation
+MAP-016,Convention Center,wayfinding,full_sign,"Sign says left arrow, 9 min from sign",pending_university_confirmation
+MAP-017,Vineet Nayyar Academic Block,wayfinding,full_sign,"Sign says left arrow, 9 min from sign",pending_university_confirmation
+MAP-018,École Centrale School of Engineering,wayfinding,full_sign,"Sign says left arrow, 5 min from sign",pending_university_confirmation
+MAP-019,"Hostel 1, 2, 3, 4",wayfinding,full_sign,"Sign says left arrow, 8 min from sign",pending_university_confirmation
