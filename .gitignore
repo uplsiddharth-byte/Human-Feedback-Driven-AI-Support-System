@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 out/
+.DS_Store
+# Raw crawl: carries Juno ERP links and a session token; only the cleaned data/raw/crawl_clean.json is committed
+mahindra_complete.json

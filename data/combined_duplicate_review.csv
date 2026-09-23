@@ -1,0 +1,3 @@
+﻿record_id_1,record_id_2,source_type_1,source_type_2,entity,reason,recommended_action
+MU-127,MU-155,website,website,Cyber Security Club (Secret Garden) / Secret Garden - Cybersecurity Club,"Names appear to refer to the same club. Both records say the club is listed separately on the source page. Descriptions differ, so these are not identical rows.",Keep both. Manual review to confirm whether the page lists one club twice or two entities.
+MAP-007,MAP-016,campus_map,campus_map,Convention Centre / Convention Center,"Same entity with different spelling (Centre vs Center). Observations differ (close-up label vs directional sign), so these are not duplicate rows.",Keep both. Manual review to confirm which spelling is shown on the map.
